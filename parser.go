@@ -17,24 +17,37 @@ type Header struct {
 	Issue     int32
 }
 
+type First struct {
+	Unknown  int32
+	Count    int16
+	Position int32
+}
+
 func main() {
-	file, err := os.Open("examples/speedcam.bin")
+	//file, err := os.Open("examples/speedcam20190131.bin")
+	file, err := os.Open("examples/speedcam20190114.bin")
 	defer file.Close()
 
 	if err != nil {
 		log.Fatalf("Error: %s", err)
 	}
 
+	//buf := make([]byte, 20)
+	//file.Read(buf)
+	//
+	//fmt.Printf("%s\n", hex.EncodeToString(buf))
+
 	header := readHeader(file)
 	fmt.Println(header)
 
-	//readFirst(header, file)
+	readFirst(header, file)
 
 	//readSecond(header, file)
 
 }
 
 func readHeader(file *os.File) (header *Header) {
+	file.Seek(0, 0)
 	fr := bufio.NewReader(file)
 	header = &Header{}
 	err := binary.Read(fr, binary.LittleEndian, header)
@@ -42,6 +55,27 @@ func readHeader(file *os.File) (header *Header) {
 		log.Fatal(err)
 	}
 	return
+}
+
+func readFirst(header *Header, file *os.File) {
+	fr := bufio.NewReader(file)
+
+	// Пропускаем заголовок
+	file.Seek(20, 0)
+
+	//for i := 0; i < int(header.UnknownDB); i++ {
+	for i := 0; i < 10; i++ {
+
+		//first := make([]byte, 10)
+		//err := binary.Read(fr, binary.LittleEndian, first)
+		first := &First{}
+		err := binary.Read(fr, binary.LittleEndian, first)
+		if err != nil {
+			log.Fatal(err)
+		}
+		//fmt.Println(hex.EncodeToString(first))
+		fmt.Println(first)
+	}
 }
 
 func readSecond(header *Header, file *os.File) {
@@ -67,66 +101,6 @@ func readSecond(header *Header, file *os.File) {
 			if i > 5 {
 				break
 			}
-		}
-	}
-}
-
-func readFirst(header *Header, file *os.File) {
-	bufLen := 10
-	buf := make([]byte, bufLen)
-	ui := int64(20)
-	l := int32(0)
-	file.Seek(20, 0)
-	for {
-		_, err := file.Read(buf)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		ui += int64(bufLen)
-		_, err = file.Seek(ui, 0)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		l++
-		//if l > (header.UnknownDB - 15000) && l < (header.UnknownDB - 5) {
-		//	fmt.Printf("%s %s %s\n",  hex.EncodeToString(buf[0:4]), hex.EncodeToString(buf[4:6]), hex.EncodeToString(buf[6:10]))
-		//	fmt.Printf("%s %s\n", hex.EncodeToString(buf[0:5]), hex.EncodeToString(buf[5:10]))
-		//fmt.Printf("%s %s\n", ui, hex.EncodeToString(buf))
-
-		//var i16 int32
-		//fmt.Printf("[%v %v %v]\n",
-		//	binary.LittleEndian.Uint16(buf[0:2]),
-		//
-		//	binary.LittleEndian.Uint32(buf[2:6]),
-		//	binary.LittleEndian.Uint32(buf[6:10]),
-		//)
-		//fmt.Printf("[%v %v %v]\n",
-		//
-		//	binary.LittleEndian.Uint32(buf[0:4]),
-		//	binary.LittleEndian.Uint32(buf[4:8]),
-		//
-		//	binary.LittleEndian.Uint16(buf[8:10]),
-		//)
-
-		fmt.Printf("%v\t%v\t%v",
-			binary.LittleEndian.Uint32(buf[0:4]),
-			binary.LittleEndian.Uint32(buf[6:10]),
-			binary.LittleEndian.Uint16(buf[4:6]),
-		)
-
-		fmt.Println("")
-
-		//}
-
-		if l > (header.UnknownDB - 2) {
-			break
-		}
-
-		if ui > int64(bufLen)*20000000 {
-			file.Seek(0, 0)
-			break
 		}
 	}
 }
