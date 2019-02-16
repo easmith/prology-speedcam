@@ -1,6 +1,7 @@
 package main
 
 import (
+	. "./types"
 	"bufio"
 	"bytes"
 	"encoding/binary"
@@ -9,31 +10,6 @@ import (
 	"log"
 	"os"
 )
-
-type Header struct {
-	Version    int32
-	FirstRows  int32
-	SecondRows int32
-	Year       int32
-	Issue      int32
-}
-
-type First struct {
-	Unknown  int32
-	Count    int16
-	Position int32
-}
-
-//ImLon/ImLat/sangle/cdir/ctype/cspeed
-type Second struct {
-	Lon     int32
-	Lat     int32
-	Angle   int16
-	Dir     int8
-	Type    int8
-	Speed   int8
-	Comment [19]byte
-}
 
 func main() {
 	//file, err := os.Open("examples/speedcam20190131.bin")
@@ -50,11 +26,10 @@ func main() {
 	//fmt.Printf("%s\n", hex.EncodeToString(buf))
 
 	header := readHeader(file)
-	fmt.Println(header)
 
 	readFirst(header, file)
 
-	readSecond(header, file)
+	//readSecond(header, file)
 
 }
 
@@ -70,12 +45,8 @@ func readHeader(file *os.File) (header *Header) {
 }
 
 func readFirst(header *Header, file *os.File) {
-	fr := bufio.NewReader(file)
-
 	// Пропускаем заголовок
 	file.Seek(20, 0)
-
-	total := 0
 
 	for i := 0; i < int(header.FirstRows); i++ {
 		//for i := 0; i < 10; i++ {
@@ -83,17 +54,42 @@ func readFirst(header *Header, file *os.File) {
 		//first := make([]byte, 10)
 		//err := binary.Read(fr, binary.LittleEndian, first)
 		first := &First{}
-		err := binary.Read(fr, binary.LittleEndian, first)
+		file.Seek(20+10*int64(i), 0)
+
+		err := binary.Read(file, binary.LittleEndian, first)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if i%1000 == 0 {
-			fmt.Println(first)
+
+		//if i > 10 {
+		//	break
+		//}
+
+		points := readPoint(file, first.Position, first.Count)
+
+		if first.Count > 0 && len(points) == int(first.Count) {
+			//fmt.Printf("%v\t%v\t%v\n", i, float32(first.Y)/float32(points[0].Lon), float32(first.X)/float32(points[0].Lat))
+			fmt.Printf("%v\t%v\t%v\n", i, points[0].Lon, points[0].Lat)
+			//fmt.Printf("%v\t%v\n", float32(first.X)/float32(points[0].Lon), float32(first.Y)/float32(points[0].Lat))
+		} else {
+			fmt.Printf(">>>>>>> %s\n", first)
 		}
-		total += int(first.Count)
+
 	}
 
-	fmt.Println(total)
+	//fmt.Printf("max: %s \n", max)
+	//fmt.Println(total)
+}
+
+func readPoint(file *os.File, p int32, c int16) []Second {
+	file.Seek(int64(p), 0)
+	res := make([]Second, c)
+	for i := int16(0); i < c; i++ {
+		second := Second{}
+		binary.Read(file, binary.LittleEndian, &second)
+		res[i] = second
+	}
+	return res
 }
 
 func readSecond(header *Header, file *os.File) {
@@ -131,21 +127,21 @@ func readSecond(header *Header, file *os.File) {
 		//	fmt.Printf("TYPE: %v", second)
 		//}
 
-		//if i%5000 == 0 {
-		//	fmt.Println(second)
-		//	b, _ := decoder.Bytes(second.Comment[:])
-		//	fmt.Println(string(bytes.Trim(b, "\x00")))
-		//}
-	}
-
-	for t := 1; t < 1000; t++ {
-		if val, ok := types[t]; ok {
-			fmt.Printf("%v\t\n", t)
-			for k, v := range val {
-				fmt.Printf("\t%v\t%v\n", k, v)
-			}
+		if i < 10 || i > (int(header.SecondRows)-10) {
+			fmt.Println(second)
+			b, _ := decoder.Bytes(second.Comment[:])
+			fmt.Println(string(bytes.Trim(b, "\x00")))
 		}
-
 	}
+
+	//for t := 1; t < 1000; t++ {
+	//	if val, ok := types[t]; ok {
+	//		fmt.Printf("%v\t\n", t)
+	//		for k, v := range val {
+	//			fmt.Printf("\t%v\t%v\t%v\n", t, k, v)
+	//		}
+	//	}
+	//
+	//}
 
 }
