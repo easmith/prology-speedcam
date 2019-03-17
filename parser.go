@@ -13,24 +13,10 @@ import (
 
 func main() {
 	//file, err := os.Open("examples/speedcam20190131.bin")
-	file, err := os.Open("examples/speedcam20190114.bin")
-	defer file.Close()
+	binReader := OpenBinReader("examples/speedcam20190114.bin")
 
-	if err != nil {
-		log.Fatalf("Error: %s", err)
-	}
-
-	//buf := make([]byte, 20)
-	//file.Read(buf)
-	//
-	//fmt.Printf("%s\n", hex.EncodeToString(buf))
-
-	header := readHeader(file)
-
-	readFirst(header, file)
-
-	//readSecond(header, file)
-
+	log.Println(binReader.GetTotal())
+	log.Println(len(binReader.GetPoints()))
 }
 
 func readHeader(file *os.File) (header *Header) {
@@ -47,7 +33,8 @@ func readHeader(file *os.File) (header *Header) {
 func readFirst(header *Header, file *os.File) {
 	// Пропускаем заголовок
 	file.Seek(20, 0)
-
+	//var prevX int16 = 0
+	//var prevLon int32 = 0
 	for i := 0; i < int(header.FirstRows); i++ {
 		//for i := 0; i < 10; i++ {
 
@@ -67,13 +54,19 @@ func readFirst(header *Header, file *os.File) {
 
 		points := readPoint(file, first.Position, first.Count)
 
-		if first.Count > 0 && len(points) == int(first.Count) {
-			//fmt.Printf("%v\t%v\t%v\n", i, float32(first.Y)/float32(points[0].Lon), float32(first.X)/float32(points[0].Lat))
-			fmt.Printf("%v\t%v\t%v\n", i, points[0].Lon, points[0].Lat)
-			//fmt.Printf("%v\t%v\n", float32(first.X)/float32(points[0].Lon), float32(first.Y)/float32(points[0].Lat))
-		} else {
-			fmt.Printf(">>>>>>> %s\n", first)
-		}
+		fmt.Printf("%v\t%v\t%v\t%v\n", first.X, first.Y, points[0].Lat, points[0].Lon)
+
+		//if first.Count > 0 && len(points) == int(first.Count) {
+		//	//fmt.Printf("%v\t%v\t%v\n", i, float32(first.Y)/float32(points[0].Lon), float32(first.X)/float32(points[0].Lat))
+		//	//fmt.Printf("%v\t%v\t%v\n", i, points[0].Lon, points[0].Lat)
+		//	lon := float64(prevLon - points[0].Lat)
+		//	xx := prevX - first.X
+		//	fmt.Printf("%v\t%v\t%v\n", xx, math.Abs(lon), float64(xx) / math.Abs(lon))
+		//	prevX = first.X
+		//	prevLon = points[0].Lon
+		//} else {
+		//	fmt.Printf(">>>>>>> %s\n", first)
+		//}
 
 	}
 
